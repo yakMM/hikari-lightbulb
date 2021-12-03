@@ -191,6 +191,8 @@ class CommandLike:
     """Whether or not the command should be hidden from the help command."""
     inherit_checks: bool = False
     """Whether or not the command should inherit checks from the parent group."""
+    default_permission: bool = True
+    """Whether the command is enabled by default when the app is added to a guild."""
 
     async def __call__(self, context: context_.base.Context) -> None:
         await self.callback(context)
@@ -277,6 +279,7 @@ class Command(abc.ABC):
         "check_exempt",
         "hidden",
         "inherit_checks",
+        "default_permission",
     )
 
     def __init__(self, app: app_.BotApp, initialiser: CommandLike) -> None:
@@ -320,6 +323,8 @@ class Command(abc.ABC):
         """Whether or not the command should be hidden from the help command."""
         self.inherit_checks: bool = initialiser.inherit_checks
         """Whether or not the command should inherit checks from the parent group."""
+        self.default_permission = initialiser.default_permission
+        """Whether the command is enabled by default when the app is added to a guild."""
 
     def __hash__(self) -> int:
         return hash(self.name)

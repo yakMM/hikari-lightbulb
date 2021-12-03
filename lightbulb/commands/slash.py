@@ -95,6 +95,7 @@ class SlashCommand(base.ApplicationCommand):
             "name": self.name,
             "description": self.description,
             "options": [o.as_application_command_option() for o in sorted_opts],
+            "default_permission": self.default_permission,
         }
 
     def _validate_attributes(self) -> None:
@@ -191,6 +192,7 @@ class SlashCommandGroup(SlashCommand, SlashGroupMixin):
             "name": self.name,
             "description": self.description,
             "options": [c.as_option() for c in self._subcommands.values()],
+            "default_permission": self.default_permission,
         }
 
     def _validate_attributes(self) -> None:

@@ -75,6 +75,7 @@ def _serialise_hikari_command(command: hikari.Command) -> t.Dict[str, t.Any]:
         "description": command.description,
         "options": [_serialise_option(o) for o in options],
         "guild_id": command.guild_id,
+        "default_permission": command.default_permission,
     }
 
 
@@ -85,6 +86,7 @@ def _serialise_lightbulb_command(command: base.ApplicationCommand) -> t.Dict[str
         "description": create_kwargs["description"],
         "options": [_serialise_option(o) for o in sorted(create_kwargs["options"], key=lambda o: o.name)],  # type: ignore
         "guild_id": _GuildIDCollection(command.guilds) if command.guilds else None,
+        "default_permission": create_kwargs["default_permission"],
     }
 
 

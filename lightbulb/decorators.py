@@ -80,6 +80,8 @@ def command(name: str, description: str, **kwargs: t.Any) -> t.Callable[[Command
         hidden (:obj:`bool`): Whether or not to hide the command from the help command. Defaults to ``False``.
         inherit_checks (:obj:`bool`): Whether or not the command should inherit checks from the parent group. Only
             affects subcommands. Defaults to ``False``.
+        default_permission (:obj:`bool`): Whether the command is enabled by default when the app is added to a guild.
+            This will only affect application commands. Defaults to ``True``.
     """
 
     def decorate(func: CommandCallbackT) -> commands.base.CommandLike:
