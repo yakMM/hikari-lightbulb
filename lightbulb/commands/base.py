@@ -17,7 +17,7 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["OptionModifier", "OptionLike", "CommandLike", "Command", "ApplicationCommand", "SubCommandTrait"]
+__all__ = ["OptionModifier", "PermissionType", "OptionLike", "CommandLike", "Command", "ApplicationCommand", "SubCommandTrait"]
 
 import abc
 import collections
@@ -100,6 +100,15 @@ class OptionModifier(enum.Enum):
     """Consume rest option. This will consume the entire remainder of the string."""
 
 
+class PermissionType(enum.Enum):
+    """Enum representing types that affect command permissions."""
+
+    ROLE = hikari.CommandPermissionType.ROLE
+    """Role permission. This will ill toggles access for a specific role."""
+    USER = hikari.CommandPermissionType.USER
+    """User permission. This will toggles access for a specific user."""
+
+
 @dataclasses.dataclass
 class OptionLike:
     """
@@ -153,6 +162,34 @@ class OptionLike:
 
 
 @dataclasses.dataclass
+class PermissionLike:
+    """
+    Generic dataclass representing a command permission. Compatible only with application commands.
+    """
+
+    type: PermissionType
+    """The type of permission."""
+    id: int
+    """The id of the role or use to apply the permission to."""
+    has_access: bool
+    """Whether the target entity will have access to the command."""
+
+    def as_application_permission(self) -> hikari.CommandPermission:
+        """
+        Convert this object into a :obj:`~hikari.commands.CommandPermission`.
+
+        Returns:
+            :obj:`~hikari.commands.CommandPermission`: Created ``CommandPermission`` object.
+        """
+        kwargs: t.MutableMapping[str, t.Any] = {
+            "type": self.type.value,
+            "id": self.id,
+            "has_access": self.has_access,
+        }
+        return hikari.CommandPermission(**kwargs)
+
+
+@dataclasses.dataclass
 class CommandLike:
     """Generic dataclass representing a command. This can be converted into any command object."""
 
@@ -163,6 +200,8 @@ class CommandLike:
     description: str
     """The description of the command."""
     options: t.MutableMapping[str, OptionLike] = dataclasses.field(default_factory=dict)
+    """The options for the command."""
+    permissions: t.MutableSequence[PermissionLike] = dataclasses.field(default_factory=list)
     """The options for the command."""
     checks: t.Sequence[checks.Check] = dataclasses.field(default_factory=list)
     """The checks for the command."""
@@ -267,6 +306,7 @@ class Command(abc.ABC):
         "name",
         "description",
         "options",
+        "permissions",
         "checks",
         "error_handler",
         "parent",
@@ -297,6 +337,8 @@ class Command(abc.ABC):
         """The options for the command."""
         self.checks: t.Sequence[checks.Check] = initialiser.checks
         """The checks for the command."""
+        self.permissions: t.MutableSequence[PermissionLike] = initialiser.permissions
+        """The permissions for the command."""
         self.error_handler: t.Optional[
             t.Callable[[events.CommandErrorEvent], t.Coroutine[t.Any, t.Any, t.Optional[bool]]]
         ] = initialiser.error_handler

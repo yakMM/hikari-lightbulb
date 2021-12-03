@@ -100,6 +100,14 @@ def _compare_commands(cmd1: base.ApplicationCommand, cmd2: hikari.Command) -> bo
     return serialise_command(cmd1) == serialise_command(cmd2)
 
 
+def _serialise_permission(permission: hikari.CommandPermission) -> t.Dict[str, t.Any]:
+    return {
+        "id": permission.id,
+        "type": permission.type,
+        "has_access": permission.has_access,
+    }
+
+
 async def manage_application_commands(app: app_.BotApp) -> None:
     assert app.application is not None
 

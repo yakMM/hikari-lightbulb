@@ -124,6 +124,26 @@ def option(
     return decorate
 
 
+def permission(
+    type: commands.PermissionType, id: int, has_access: bool
+) -> t.Callable[[commands.base.CommandLike], commands.base.CommandLike]:
+    """
+    Second order decorator that adds a permission to the decorated :obj:`~.commands.base.CommandLike`
+    object.
+
+    Args:
+        type (:obj:`~.commands.base.PermissionType`): The type of permission.
+        id (:obj:`int`): The id of the role or use to apply the permission to.
+        has_access (:obj:`bool`): Whether the target entity will have access to the command.
+    """
+
+    def decorate(c_like: commands.base.CommandLike) -> commands.base.CommandLike:
+        c_like.permissions.append(commands.base.PermissionLike(type, id, has_access))
+        return c_like
+
+    return decorate
+
+
 def add_checks(*cmd_checks: checks_.Check) -> t.Callable[[commands.base.CommandLike], commands.base.CommandLike]:
     """
     Second order decorator that adds one or more checks to the decorated :obj:`~.commands.base.CommandLike`
