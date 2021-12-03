@@ -93,6 +93,9 @@ command types that can be created.
 - ``inherit_checks`` (optional) - Whether or not the command should inherit checks from the parent group. Naturally, this will
   only affect subgroups and subcommands. Defaults to ``False``.
 
+- ``default_permission`` (optional) -Whether the command is enabled by default when the app is added to a guild.
+  This will only affect application commands. Defaults to True.
+
 **For example:**
 
 .. code-block:: python
