@@ -17,7 +17,15 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["OptionModifier", "PermissionType", "OptionLike", "CommandLike", "Command", "ApplicationCommand", "SubCommandTrait"]
+__all__ = [
+    "OptionModifier",
+    "PermissionType",
+    "OptionLike",
+    "CommandLike",
+    "Command",
+    "ApplicationCommand",
+    "SubCommandTrait",
+]
 
 import abc
 import collections
@@ -490,6 +498,16 @@ class ApplicationCommand(Command, abc.ABC):
         if self.options:
             sig += f" {' '.join(f'<{o.name}>' if o.required else f'[{o.name}={o.default}]' for o in self.options.values())}"
         return sig
+
+    def get_permissions(self) -> t.Sequence[hikari.CommandPermission]:
+        return [
+            hikari.CommandPermission(
+                id=permission.id,
+                type=permission.type.value,
+                has_access=permission.has_access,
+            )
+            for permission in self.permissions
+        ]
 
     async def create(self, guild: t.Optional[int] = None) -> hikari.Command:
         """

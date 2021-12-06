@@ -352,6 +352,16 @@ class BotApp(hikari.GatewayBot):
                 f"Application command creation failed for guild {guild_id!r}. Is your bot in the guild and was it invited with the 'application.commands' scope?"
             ) from exc
 
+        try:
+            await internal.manage_application_commands_permissions(self)
+        except hikari.ForbiddenError as exc:
+            error_msg = str(exc)
+            match = _APPLICATION_CMD_ERROR_REGEX.search(error_msg)
+            guild_id = "unknown" if match is None else match.group(1)
+            raise errors.ApplicationCommandCreationFailed(
+                f"Could not set application command permissions for guild {guild_id!r}. Is your bot in the guild and was it invited with the 'application.commands.permission.update' scope?"
+            ) from exc
+
     @staticmethod
     def _get_events_for_application_command(
         command: commands.base.ApplicationCommand,

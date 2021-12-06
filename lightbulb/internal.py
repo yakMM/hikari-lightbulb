@@ -100,12 +100,25 @@ def _compare_commands(cmd1: base.ApplicationCommand, cmd2: hikari.Command) -> bo
     return serialise_command(cmd1) == serialise_command(cmd2)
 
 
-def _serialise_permission(permission: hikari.CommandPermission) -> t.Dict[str, t.Any]:
-    return {
-        "id": permission.id,
-        "type": permission.type,
-        "has_access": permission.has_access,
-    }
+def _serialise_permission(permission: t.Union[hikari.CommandPermission, base.PermissionLike]) -> t.FrozenSet[str]:
+    return frozenset(
+        str(
+            {
+                "id": permission.id,
+                "type": permission.type if isinstance(permission, hikari.CommandPermission) else permission.type.value,
+                "has_access": permission.has_access,
+            }.items()
+        )
+    )
+
+
+def _compare_permissions(
+    perms_1: t.Sequence[base.PermissionLike], perms_2: t.Sequence[hikari.CommandPermission]
+) -> bool:
+
+    serialized_perms_1: t.Set[t.FrozenSet[str]] = set(_serialise_permission(perm) for perm in perms_1)
+    serialized_perms_2: t.Set[t.FrozenSet[str]] = set(_serialise_permission(perm) for perm in perms_2)
+    return serialized_perms_1 == serialized_perms_2
 
 
 async def manage_application_commands(app: app_.BotApp) -> None:
@@ -186,4 +199,80 @@ async def manage_application_commands(app: app_.BotApp) -> None:
             )
 
             await app_cmd.create(g_id)
+    _LOGGER.info("Command processing completed")
+
+
+async def manage_application_commands_permissions(app: app_.BotApp) -> None:
+    assert app.application is not None
+
+    grouped_commands: t.Dict[t.Union[int], t.Dict[hikari.Snowflake, base.ApplicationCommand]] = collections.defaultdict(
+        dict
+    )
+    for s_command in app._slash_commands.values():
+        guilds = s_command.guilds or app.default_enabled_guilds or None
+        if guilds is not None:
+            for guild in guilds:
+                grouped_commands[guild][s_command.instances[guild].id] = s_command
+
+    all_guild_ids: t.Set[int] = set()
+    all_guild_ids.update(app.default_enabled_guilds)
+    for app_command in app._slash_commands.values():
+        all_guild_ids.update(app_command.guilds)
+
+    for guild_id in all_guild_ids:
+        _LOGGER.info("Processing permissions for guild %r", str(guild_id))
+        guild_permissions: t.Sequence[
+            hikari.GuildCommandPermissions
+        ] = await app.rest.fetch_application_guild_commands_permissions(app.application, guild_id)
+
+        for permissions in guild_permissions:
+            assert permissions.command_id in grouped_commands[guild_id]
+
+            registered_command = grouped_commands[guild_id][permissions.command_id]
+
+            if not registered_command.permissions:
+                _LOGGER.debug(
+                    "Deleting permissions of command %r from guild %r",
+                    registered_command.name,
+                    str(guild_id),
+                )
+                await app.rest.set_application_command_permissions(
+                    app.application, guild_id, permissions.command_id, []
+                )
+            elif not _compare_permissions(registered_command.permissions, permissions.permissions):
+                _LOGGER.debug(
+                    "Setting permissions of command %r in guild %r as it appears to have changed",
+                    registered_command.name,
+                    str(guild_id),
+                )
+                await app.rest.set_application_command_permissions(
+                    app.application, guild_id, permissions.command_id, registered_command.get_permissions()
+                )
+            else:
+                _LOGGER.debug(
+                    "Not recreating permissions of command %r in guild %r as it does not appear to have changed",
+                    registered_command.name,
+                    str(guild_id),
+                )
+            grouped_commands[guild_id].pop(permissions.command_id, None)
+
+    for g_id, commands in grouped_commands.items():
+
+        for cmd_id in commands.keys():
+            if commands[cmd_id].permissions:
+                _LOGGER.debug(
+                    "Creating permissions %r %s as it does not seem to exist yet",
+                    commands[cmd_id].name,
+                    f"in guild {g_id}" if g_id else "globally",
+                )
+
+                await app.rest.set_application_command_permissions(
+                    app.application, g_id, cmd_id, commands[cmd_id].get_permissions()
+                )
+            else:
+                _LOGGER.debug(
+                    "Not recreating permissions of command %r in guild %r as it does not appear to have changed",
+                    commands[cmd_id].name,
+                    f"in guild {g_id}" if g_id else "globally",
+                )
     _LOGGER.info("Command processing completed")

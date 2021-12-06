@@ -17,7 +17,7 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["implements", "command", "option", "add_checks", "check_exempt", "add_cooldown", "set_help"]
+__all__ = ["implements", "command", "option", "permission", "add_checks", "check_exempt", "add_cooldown", "set_help"]
 
 import functools
 import inspect
@@ -125,7 +125,7 @@ def option(
 
 
 def permission(
-    type: commands.PermissionType, id: int, has_access: bool
+    type: commands.base.PermissionType, id: int, has_access: bool
 ) -> t.Callable[[commands.base.CommandLike], commands.base.CommandLike]:
     """
     Second order decorator that adds a permission to the decorated :obj:`~.commands.base.CommandLike`
